@@ -31,6 +31,7 @@ export function useMotion({ onSample, invertX, invertY }: Options) {
   const latest = useRef({ beta: 0, gamma: 0 });
   const lastShake = useRef(0);
   const steady = useRef<Tilt>({ x: 0, y: 0 });
+  const source = useRef<'none' | 'rotation' | 'gravity'>('none');
   const cb = useRef(onSample);
   cb.current = onSample;
   const inv = useRef({ invertX, invertY });
@@ -39,7 +40,32 @@ export function useMotion({ onSample, invertX, invertY }: Options) {
   useEffect(() => {
     DeviceMotion.setUpdateInterval(SEND_INTERVAL_MS);
     const sub = DeviceMotion.addListener((m: DeviceMotionMeasurement) => {
-      const { beta, gamma } = m.rotation;
+      // Some Android phones send ticks without rotation (early samples, or no
+      // rotation-vector sensor). Use fused rotation when present, otherwise
+      // derive tilt from gravity. Skip the tick if neither is there.
+      const r = m?.rotation;
+      const g = m?.accelerationIncludingGravity;
+      let beta: number, gamma: number;
+      if (r && Number.isFinite(r.beta) && Number.isFinite(r.gamma)) {
+        if (source.current !== 'rotation') {
+          // switching source changes the angle baseline, so re-zero on it
+          source.current = 'rotation';
+          neutral.current = { beta: r.beta, gamma: r.gamma };
+        }
+        beta = r.beta;
+        gamma = r.gamma;
+      } else if (g && source.current !== 'rotation') {
+        if (source.current !== 'gravity') {
+          source.current = 'gravity';
+          const b0 = Math.atan2(-g.y, Math.hypot(g.x, g.z));
+          const g0 = Math.atan2(g.x, Math.hypot(g.y, g.z));
+          neutral.current = { beta: b0, gamma: g0 };
+        }
+        beta = Math.atan2(-g.y, Math.hypot(g.x, g.z));
+        gamma = Math.atan2(g.x, Math.hypot(g.y, g.z));
+      } else {
+        return;
+      }
       latest.current = { beta, gamma };
 
       // beta: front/back pitch (top edge up = positive) -> ball rolls toward you (+y)
@@ -55,10 +81,12 @@ export function useMotion({ onSample, invertX, invertY }: Options) {
       if (m.acceleration) {
         const a = m.acceleration;
         mag = Math.sqrt(a.x * a.x + a.y * a.y + a.z * a.z);
+      } else if (g) {
+        mag = Math.abs(Math.sqrt(g.x * g.x + g.y * g.y + g.z * g.z) - 9.81);
       } else {
-        const a = m.accelerationIncludingGravity;
-        mag = Math.abs(Math.sqrt(a.x * a.x + a.y * a.y + a.z * a.z) - 9.81);
+        mag = 0;
       }
+      if (!Number.isFinite(mag)) mag = 0;
       const now = Date.now();
       let shake = false;
       if (mag > SHAKE_THRESHOLD && now - lastShake.current > SHAKE_COOLDOWN_MS) {

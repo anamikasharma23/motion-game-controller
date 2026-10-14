@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tilt Maze</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <main class="stage">
+      <div class="board-wrap">
+        <canvas id="board"></canvas>
+        <div id="banner" class="banner hidden"></div>
+      </div>
+
+      <aside class="side">
+        <header class="brand">
+          <span class="logo">◐</span>
+          <div>
+            <h1>Tilt Maze</h1>
+            <p>your phone is the controller</p>
+          </div>
+        </header>
+
+        <div class="pill" id="conn"><i></i><span>connecting</span></div>
+
+        <section class="pair">
+          <canvas id="qr"></canvas>
+          <div class="code-block">
+            <small>room code</small>
+            <div id="code" class="code">····</div>
+            <small id="server-hint" class="hint"></small>
+          </div>
+        </section>
+
+        <section class="hud">
+          <div><small>level</small><b id="level">1</b></div>
+          <div><small>time</small><b id="timer">0.0</b></div>
+        </section>
+
+        <section>
+          <small class="label">players</small>
+          <ul id="players" class="players"><li class="empty">Scan the QR with the app to join</li></ul>
+        </section>
+
+        <footer class="howto">
+          <p><b>Tilt</b> to roll · <b>Shake</b> or tap <b>Jump</b> to hop low walls and pits · reach the ring</p>
+        </footer>
+      </aside>
+    </main>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
